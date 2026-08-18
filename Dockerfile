@@ -10,7 +10,7 @@
 # Run with the real OWASP corpus (needs network at container start):
 #   docker run -p 8000:8000 -e FETCH_REAL_CORPUS=1 securegen
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 # javac is required for the compile-gate step in securegen_eval.
 # openjdk-17-jdk-headless matches the capstone's Java 17 compile target.
