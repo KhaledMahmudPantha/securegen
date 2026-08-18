@@ -25,6 +25,31 @@ class Chunk:
     metadata: dict = field(default_factory=dict)
 
 
+def _strip_table_separator_lines(text: str) -> str:
+    """
+    Removes markdown table separator/divider lines (e.g. "|---|---|---|"
+    or "--|-----------|---------|") before chunking.
+
+    These lines carry zero information but can be very long in
+    wide-column tables — long enough to dominate the start of a
+    900-char chunk when the table itself gets hard-split, crowding out
+    the actual header/data rows that follow in the same chunk. Deleting
+    them up front (rather than trying to filter whole chunks after the
+    fact) fixes this at the source: the real table content shifts
+    earlier in the chunk instead of being pushed out by dashes.
+    """
+    out_lines = []
+    for line in text.split("\n"):
+        stripped = line.strip()
+        # A separator line is built only from |, -, :, and whitespace,
+        # and contains at least a couple of dashes (so we don't eat a
+        # lone "-" used as a bullet, or an empty line).
+        if stripped and re.fullmatch(r'[\|\-\:\s]+', stripped) and stripped.count("-") >= 2:
+            continue
+        out_lines.append(line)
+    return "\n".join(out_lines)
+
+
 def _split_paragraphs(text: str) -> list[str]:
     # Split on blank lines / markdown headings, drop empties.
     parts = re.split(r"\n\s*\n|\n(?=#{1,6}\s)", text)
@@ -90,6 +115,7 @@ def chunk_text(
     overlap_chars: int = 120,
     extra_metadata: dict | None = None,
 ) -> list[Chunk]:
+    text = _strip_table_separator_lines(text)
     paragraphs = _split_paragraphs(text)
     if not paragraphs:
         return []
