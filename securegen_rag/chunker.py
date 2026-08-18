@@ -53,6 +53,35 @@ def _sliding_window(paragraphs: list[str], max_chars: int, overlap_chars: int) -
     return chunks
 
 
+def _is_low_quality_chunk(text: str, min_chars: int = 150) -> bool:
+    """
+    Filters out chunks that would win a retrieval slot on keyword overlap
+    alone despite carrying little real guidance:
+
+    - Markdown table separator/divider rows (e.g. "---|---|---"), which
+      are almost pure punctuation and match broadly against anything.
+    - Tiny "this page has moved / is deprecated" stub pages — real
+      content is elsewhere, so these are near-noise in a retrieval index.
+    - Any chunk under min_chars after collapsing whitespace, since a
+      genuinely useful guidance chunk is rarely that short.
+    """
+    stripped = " ".join(text.split())
+    if len(stripped) < min_chars:
+        return True
+
+    # Table separator rows: strip common table/markdown punctuation and
+    # see what's left. If almost nothing alphanumeric remains, it's noise.
+    alnum_only = re.sub(r'[^A-Za-z0-9]', '', stripped)
+    if len(alnum_only) < 20:
+        return True
+
+    lowered = stripped.lower()
+    if ("has been moved" in lowered or "has been deprecated" in lowered or "please visit" in lowered) and len(stripped) < 300:
+        return True
+
+    return False
+
+
 def chunk_text(
     text: str,
     doc_id: str,
@@ -67,6 +96,8 @@ def chunk_text(
     raw_chunks = _sliding_window(paragraphs, max_chars=max_chars, overlap_chars=overlap_chars)
     out = []
     for i, c in enumerate(raw_chunks):
+        if _is_low_quality_chunk(c):
+            continue
         out.append(
             Chunk(
                 doc_id=doc_id,
