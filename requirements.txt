@@ -1,0 +1,15 @@
+# Core (offline-capable, no network/GPU required)
+numpy>=1.24
+scikit-learn>=1.3
+
+# API layer (Phase 3)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.0
+
+# Optional — swap TfidfEmbedder for SentenceTransformerEmbedder once
+# you have network access for model downloads
+# sentence-transformers>=2.2
+
+# Testing
+pytest>=7.4
