@@ -13,4 +13,11 @@ if [ ! -d "/app/data/index" ] || [ -z "$(ls -A /app/data/index 2>/dev/null)" ]; 
     fi
 fi
 
+# Respect a platform-provided PORT (Render, HF Spaces, etc. all set this)
+# and override whatever port the CMD hardcoded, so the same image works
+# unmodified across hosts that assign different ports.
+if [ -n "$PORT" ]; then
+    set -- uvicorn api.main:app --host 0.0.0.0 --port "$PORT"
+fi
+
 exec "$@"
